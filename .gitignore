@@ -19,3 +19,6 @@ target/
 # OS specific
 .DS_Store
 Thumbs.db
+
+# pictures
+pictures/
