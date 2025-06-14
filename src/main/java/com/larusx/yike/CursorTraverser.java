@@ -72,25 +72,37 @@ public class CursorTraverser implements Traverser {
     private void process(Object item) {
         JSONObject file = JSONUtil.parseObj(item);
         String fsid = file.getStr("fsid");
-        processFsid(fsid);
+        // 提取创建时间，一般 API 会提供 ctime 或 time 或 createTime 等字段
+        // 这里尝试各种可能的创建时间字段名
+        long createTime = 0;
+        if (file.containsKey("ctime")) {
+            createTime = file.getLong("ctime");
+        } else if (file.containsKey("time")) {
+            createTime = file.getLong("time");
+        } else if (file.containsKey("createTime")) {
+            createTime = file.getLong("createTime");
+        } else if (file.containsKey("create_time")) {
+            createTime = file.getLong("create_time");
+        }
+        processFsid(fsid, createTime);
     }
 
-    private void processFsid(String fsid) {
+    private void processFsid(String fsid, long createTime) {
         if (!remember.hasRemember(fsid)) {
             fetchDownloadUrlExecutorService.execute(() -> {
-                fetchAndDownload(fsid);
+                fetchAndDownload(fsid, createTime);
             });
         }
     }
 
-    private void fetchAndDownload(String fsid) {
+    private void fetchAndDownload(String fsid, long createTime) {
         try {
             String downloadUrl = downloader.fetchDownloadUrl(fsid);
             if (downloadUrl == null) {
                 errorRemember.add(fsid);
             } else {
                 downloadExecutorService.execute(() -> {
-                    download(fsid, downloadUrl);
+                    download(fsid, downloadUrl, createTime);
                 });
             }
         } catch (IOException e) {
@@ -98,9 +110,9 @@ public class CursorTraverser implements Traverser {
         }
     }
 
-    private void download(String fsid, String downloadUrl) {
+    private void download(String fsid, String downloadUrl, long createTime) {
         try {
-            downloader.downloadFile(downloadUrl);
+            downloader.downloadFile(downloadUrl, createTime);
             remember.add(fsid);
         } catch (IOException e) {
             e.printStackTrace();
