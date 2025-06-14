@@ -41,19 +41,32 @@ public class Downloader {
         HttpResponse httpResponse = httpAgent.doRequest(dlink);
         String fileName = URLUtils.getFileName(httpResponse);
         
-        // 如果有创建时间，将其添加到文件名中，以便按时间排序
+        // 默认使用根路径
+        String relativePath = "";
+        
+        // 如果有创建时间，创建按年月的目录结构，并修改文件名前缀
         if (createTime > 0) {
-            String timePrefix = formatTimePrefix(createTime);
-            fileName = timePrefix + "_" + fileName;
+            // 生成年份和月份目录
+            Date date = new Date(createTime * 1000); // 假设时间戳是以秒为单位
+            SimpleDateFormat yearFormat = new SimpleDateFormat("yyyy");
+            SimpleDateFormat monthFormat = new SimpleDateFormat("MM");
+            
+            String year = yearFormat.format(date);
+            String month = monthFormat.format(date);
+            
+            // 设置相对路径为 YYYY/MM/
+            relativePath = year + "/" + month + "/";
+            
+            // 生成文件名前缀 MMDD_HHMMSS_
+            SimpleDateFormat fileNameFormat = new SimpleDateFormat("MMdd_HHmmss");
+            String filePrefix = fileNameFormat.format(date) + "_";
+            
+            // 更新文件名
+            fileName = filePrefix + fileName;
         }
         
         InputStream content = httpResponse.getEntity().getContent();
-        fileSink.write(content, fileName);
-    }
-    
-    private String formatTimePrefix(long timestamp) {
-        // 格式化时间为 YYYYMMDD_HHMMSS 格式，便于按时间排序
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
-        return sdf.format(new Date(timestamp * 1000)); // 假设时间戳是以秒为单位
+        // 写入文件，带上子路径
+        fileSink.write(content, relativePath + fileName);
     }
 }

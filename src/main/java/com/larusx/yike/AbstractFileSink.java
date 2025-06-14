@@ -18,6 +18,13 @@ public abstract class AbstractFileSink implements FileSink {
     public void write(InputStream content, String fileName) throws IOException {
         String filePath = URLUtils.mergePathAndFileName(targetRootPath, fileName);
 
+        // 确保目录存在
+        File file = new File(filePath);
+        File parentDir = file.getParentFile();
+        if (parentDir != null && !parentDir.exists()) {
+            parentDir.mkdirs();
+        }
+
         filePath = resolveRepeatName(filePath);
 
         internalWrite(content, filePath);
